@@ -1,14 +1,98 @@
 //SPDX-License-Identifier: MIT
-pragma solidity >=0.8.0 <0.9.0;
+pragma solidity 0.8.28;
 
-import "@openzeppelin/contracts/token/ERC20/ERC20.sol";
+import "@openzeppelin/contracts/token/ERC721/ERC721.sol";
+import "@openzeppelin/contracts/token/ERC721/extensions/ERC721URIStorage.sol";
+import "@openzeppelin/contracts/access/Ownable.sol";
 
-contract SE2Token is ERC20 {
-    constructor() ERC20("SE2Token", "SE2") { }
+contract Game is ERC721, ERC721URIStorage, Ownable {
+    uint256 private _tokenIds;
 
-    // Minting is open to anyone and for free.
-    // You can implement your custom logic to mint tokens.
-    function mint(address to, uint256 amount) public {
-        _mint(to, amount);
+    mapping(address => mapping(uint256 => bool)) public completedLevels;
+
+    mapping(address => uint256) public playerScores;
+
+    mapping(address => bool) public gameAdmins;
+
+    event LevelCompleted(address player, uint256 levelId, uint256 tokenId);
+    event ScoreUpdated(address player, uint256 increment, uint256 newScore);
+
+    modifier onlyGameAdmin() {
+        require(
+            gameAdmins[msg.sender] || owner() == msg.sender,
+            "Not authorized"
+        );
+        _;
+    }
+
+    constructor() ERC721("LevelCompletionNFT", "LCNFT") Ownable(msg.sender) {}
+
+    function setGameAdmin(address admin, bool status) public onlyOwner {
+        gameAdmins[admin] = status;
+    }
+
+    function updateScore(
+        address player,
+        uint256 incrementAmount
+    ) public onlyGameAdmin returns (uint256) {
+        playerScores[player] += incrementAmount;
+
+        emit ScoreUpdated(player, incrementAmount, playerScores[player]);
+
+        return playerScores[player];
+    }
+
+    // sets the metadata uri for a given level.
+    // the metadata json at this uri should include keys like "name", "description", "image", etc.
+    // for example:
+    // {
+    //    "name": "level 1 achievement",
+    //    "description": "awarded for completing level 1",
+    //    "image": "ipfs://<ipfs_cid>/level1.png",
+    //    "attributes": [
+    //         { "trait_type": "level", "value": 1 }
+    //    ]
+    // }
+
+    function mintNFT(
+        address player,
+        uint256 levelId,
+        string memory metadataURI
+    ) public onlyGameAdmin returns (uint256) {
+        require(bytes(metadataURI).length > 0, "Metadata URI is required");
+        require(!completedLevels[player][levelId], "Level already completed");
+
+        _tokenIds++;
+        uint256 newTokenId = _tokenIds;
+
+        _mint(player, newTokenId);
+        _setTokenURI(newTokenId, metadataURI);
+
+        completedLevels[player][levelId] = true;
+        emit LevelCompleted(player, levelId, newTokenId);
+        return newTokenId;
+    }
+
+    function hasCompletedLevel(
+        address player,
+        uint256 levelId
+    ) public view returns (bool) {
+        return completedLevels[player][levelId];
+    }
+
+    function tokenURI(
+        uint256 tokenId
+    ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
+        return super.tokenURI(tokenId);
+    }
+
+    function getPlayerScore(address player) public view returns (uint256) {
+        return playerScores[player];
+    }
+
+    function supportsInterface(
+        bytes4 interfaceId
+    ) public view override(ERC721, ERC721URIStorage) returns (bool) {
+        return super.supportsInterface(interfaceId);
     }
 }

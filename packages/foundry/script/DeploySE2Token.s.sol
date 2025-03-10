@@ -6,7 +6,7 @@ import "./DeployHelpers.s.sol";
 
 contract DeploySE2Token is ScaffoldETHDeploy {
     function run() external ScaffoldEthDeployerRunner {
-        SE2Token se2Token = new SE2Token();
+        Game se2Token = new Game();
         console.logString(string.concat("SE2Token deployed at: ", vm.toString(address(se2Token))));
     }
 }
