@@ -42,18 +42,6 @@ contract Game is ERC721, ERC721URIStorage, Ownable {
         return playerScores[player];
     }
 
-    // sets the metadata uri for a given level.
-    // the metadata json at this uri should include keys like "name", "description", "image", etc.
-    // for example:
-    // {
-    //    "name": "level 1 achievement",
-    //    "description": "awarded for completing level 1",
-    //    "image": "ipfs://<ipfs_cid>/level1.png",
-    //    "attributes": [
-    //         { "trait_type": "level", "value": 1 }
-    //    ]
-    // }
-
     function mintNFT(
         address player,
         uint256 levelId,
